@@ -4,7 +4,6 @@
 #include "IEcoInterfaceBus1.h"
 #include "IEcoCalculatorX.h"
 #include "IEcoCalculatorY.h"
-#include "LabConstructors.h"
 
 typedef struct Lab1Parts {
     IEcoCalculatorX* included_x;
@@ -13,7 +12,7 @@ typedef struct Lab1Parts {
 } Lab1Parts;
 
 int16_t lab1_parts_open(Lab1Parts* parts, IEcoInterfaceBus1* bus,
-    IEcoUnknown* controller, Lab1Composition composition);
+    IEcoUnknown* controller);
 void lab1_parts_close(Lab1Parts* parts);
 
 #endif

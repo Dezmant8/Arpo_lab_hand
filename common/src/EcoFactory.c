@@ -1,28 +1,33 @@
-#include "EcoFactory.h"
+#include "EcoObject.h"
+#include "LabConstructors.h"
+
+#if ARPO_SERVER == 1
+#define create_instance lab1_create
+#elif ARPO_SERVER == 2
+#define create_instance lab2_create
+#else
+#error Select the server to build
+#endif
+
+typedef struct ModuleFactory {
+    IEcoComponentFactory iface;
+    uint32_t references;
+} ModuleFactory;
 
 static uint32_t ECOCALLMETHOD factory_addref(IEcoComponentFactory* me)
 {
-    EcoFactory* factory;
+    ModuleFactory* factory = (ModuleFactory*)me;
 
-    if (me == 0) {
-        return 0;
-    }
-    factory = ECO_OWNER(me, EcoFactory, iface);
-    return ++factory->references;
+    return factory != 0 ? ++factory->references : 0;
 }
 
 static uint32_t ECOCALLMETHOD factory_release(IEcoComponentFactory* me)
 {
-    EcoFactory* factory;
+    ModuleFactory* factory = (ModuleFactory*)me;
 
-    if (me == 0) {
-        return 0;
-    }
-    factory = ECO_OWNER(me, EcoFactory, iface);
-    if (factory->references == 0) {
-        return 0;
-    }
-    return --factory->references;
+    if (factory == 0) return 0;
+    if (factory->references != 0) --factory->references;
+    return factory->references;
 }
 
 static int16_t ECOCALLMETHOD factory_query(IEcoComponentFactory* me,
@@ -47,8 +52,6 @@ static int16_t ECOCALLMETHOD factory_query(IEcoComponentFactory* me,
 static int16_t ECOCALLMETHOD factory_allocate(IEcoComponentFactory* me,
     IEcoUnknown* system, IEcoUnknown* outer, const UGUID* iid, void** result)
 {
-    EcoFactory* factory;
-
     if (result == 0) {
         return ERR_ECO_POINTER;
     }
@@ -56,8 +59,7 @@ static int16_t ECOCALLMETHOD factory_allocate(IEcoComponentFactory* me,
     if (me == 0 || system == 0 || iid == 0) {
         return ERR_ECO_POINTER;
     }
-    factory = ECO_OWNER(me, EcoFactory, iface);
-    return factory->create(system, outer, iid, result, factory->configuration);
+    return create_instance(system, outer, iid, result);
 }
 
 static int16_t ECOCALLMETHOD factory_initialize(IEcoComponentFactory* me,
@@ -71,7 +73,7 @@ static int16_t ECOCALLMETHOD factory_initialize(IEcoComponentFactory* me,
 
 static char_t* ECOCALLMETHOD factory_name(IEcoComponentFactory* me)
 {
-    return me != 0 ? ECO_OWNER(me, EcoFactory, iface)->name : 0;
+    return me != 0 ? "Eco.Lab" : 0;
 }
 
 static char_t* ECOCALLMETHOD factory_version(IEcoComponentFactory* me)
@@ -84,8 +86,15 @@ static char_t* ECOCALLMETHOD factory_manufacturer(IEcoComponentFactory* me)
     return me != 0 ? "ARPO" : 0;
 }
 
-IEcoComponentFactoryVTbl eco_factory_vtable = {
+static IEcoComponentFactoryVTbl factory_vtable = {
     factory_query, factory_addref, factory_release,
     factory_allocate, factory_initialize,
     factory_name, factory_version, factory_manufacturer
 };
+
+ECO_EXPORT IEcoComponentFactory* ECOCALLMETHOD GetIEcoComponentFactoryPtr(void)
+{
+    static ModuleFactory factory = {{&factory_vtable}, 1};
+
+    return &factory.iface;
+}

@@ -1,33 +1,22 @@
-# Лабораторная 2 — включение и агрегирование
+# Включение и агрегирование
 
-**[Eco.Lab2](SourceFiles/CEcoLab2.c), создаваемый по `CID_EcoLab2`.** Он агрегирует расширенный [Eco.Lab1](SourceFiles/CEcoLab1.c) и включает. Сортировка возвращается как настоящий интерфейс внутреннего Lab1; арифметика доступна через собственные X/Y внешнего объекта. Переходы из любого публичного интерфейса ведут к одному Unknown Lab2.
+**Основной компонент для проверки — [Eco.Lab2](SourceFiles/CEcoLab2.c).** [Клиент](../client/UnitTestMain.c) запрашивает только `CID_EcoLab2`. [UnitTest.c](UnitTest.c) получает X и Y через интерфейс сортировки, вызывает четыре арифметических метода и сравнивает результаты с ожидаемыми. Проверка `test_identity` запрашивает `IEcoUnknown` у сортировки и сравнивает его с исходным указателем внешнего компонента.
 
-Пять дополнительных конфигураций Lab1 необходимы для демонстрации всех компонентов A–E.
+## Откуда берутся интерфейсы
 
-| CID / конфигурация | реализация |
-|---|---|
-| `CID_Lab1IncludedA` | Включение [A](Calculators/CalculatorA.c) для X и [D](Calculators/CalculatorD.c) для Y |
-| `CID_Lab1AggregatedB` | Агрегирование [B](Calculators/CalculatorB.c) для X и включение D для Y; также конфигурация `CID_EcoLab1` |
-| `CID_Lab1IncludedC` | Включение одного [C](Calculators/CalculatorC.c), X и Y получаются у одного экземпляра |
-| `CID_Lab1IncludedD` | Включение одного D, который сам включает B для X и реализует Y |
-| `CID_Lab1IncludedE` | Включение одного [E](Calculators/CalculatorE.c), который сам агрегирует B для X и реализует Y |
-| `CID_EcoLab2` | Агрегирование Lab1 в конфигурации B/D, включение одного E для X/Y |
+- Eco.Lab2 агрегирует [Eco.Lab1](SourceFiles/CEcoLab1.c). При создании он передаёт внутреннему компоненту свой управляющий Unknown и запрашивает у него неделегирующий Unknown. Клиент получает сортировку внутреннего Lab1. Если установлен E, Eco.Lab2 включает его для арифметики. Иначе X и Y предоставляет агрегированный Lab1.
+- [Eco.Lab1](SourceFiles/Composition.c) агрегирует B для X. Если B отсутствует, Lab1 включает A или совместимый с ним C. Для Y он использует D, затем E, затем запрашивает Y у компонента с CID A. Этот интерфейс поддерживает C.
+- A–E собираются из исходников [InsideACOM, уроки 02, 03, 05, 06 и 07](https://github.com/peerf-eco/Eco.Education/tree/7f1664b0489bcea6d5b211807ea5cb0ce0e1068e/Eco.Pro.Training/001.InsideACOM/Lessons). A и C используют один учебный CID. Скрипт подставляет их по очереди. Для сборки старых уроков с новым SDK компилятору задаётся соответствие прежнего имени константы успеха современному.
+- [Объекты и счётчики ссылок](../common/src/EcoObject.c) принадлежат компонентам. [Точку входа фабрики](../common/src/EcoFactory.c) экспортирует каждая наша библиотека. Шина Eco загружает библиотеку по CID.
 
+## Проверка
 
-
-1. [Composition.c](SourceFiles/Composition.c): создание зависимостей и владение ссылками.
-2.  [CEcoLab1.c](SourceFiles/CEcoLab1.c) и [CEcoLab2.c](SourceFiles/CEcoLab2.c): выдача интерфейсов и передача управляющего Unknown.
-3.  [EcoObject.c](../common/src/EcoObject.c): неделегируемый Unknown, делегирование публичных методов, транзакционное создание, освобождение.
-4.  [EcoFactory.c](../common/src/EcoFactory.c) и [Registry.c](SourceFiles/Registry.c): фабрики A–E, профили Lab1, Lab2 и откат регистрации.
-5.  [Demo.c](Demo.c): примеры арифметики, сортировка, получение X через Sort и Y через X, сравнение Unknown.
-6. запускаются тесты [TestCom.c](../tests/TestCom.c), [TestFailures.c](../tests/TestFailures.c) и [TestSorting.c](../tests/TestSorting.c) через общий [TestMain.c](../tests/TestMain.c).
-
-```bash
-python3 scripts/lab.py demo --lab 2
+```sh
 python3 scripts/lab.py test --lab 2
-python3 scripts/lab.py benchmark --lab 2
 ```
 
-Публичные контракты: [X](../include/IEcoCalculatorX.h), [Y](../include/IEcoCalculatorY.h), [Sort](../include/IEcoSortAndSearch.h), [Lab2](../include/IEcoLab2.h); идентификаторы — [LabIds.h](../include/LabIds.h). `IEcoLab2::GetVersion()` возвращает **1** — версию контракта.
+[Скрипт](../scripts/lab.py) один раз собирает клиент, расширенный Lab1 и Lab2. Каждый запуск получает отдельную папку с теми же бинарными файлами клиента и обеих лабораторных, системными библиотеками и выбранными калькуляторами. Папка удаляется после запуска.
 
+Для места A/C есть три возможности (пусто, A, C). B, D и E можно независимо поставить или убрать. Получаются 24 раскладки. В 13 из них доступны X и Y и выполнены зависимости установленных компонентов. В остальных 11 ожидается отказ запроса Eco.Lab2. Скрипт различает отказ при создании и неверный результат уже вызванного метода. В `build/lab2/dynamic-test/result.json` записаны состав, ожидаемый исход, код завершения каждого запуска и SHA-256 общего клиента.
 
+Для одного рабочего примера с B, D и E выполните `python3 scripts/lab.py demo --lab 2`. Публичные контракты доступны в [Sort](../include/IEcoSortAndSearch.h), [X](../include/IEcoCalculatorX.h), [Y](../include/IEcoCalculatorY.h) и [Lab2](../include/IEcoLab2.h).

@@ -3,7 +3,7 @@
 
 #include "IEcoSystem1.h"
 #include "IEcoInterfaceBus1.h"
-#include "LabRegistry.h"
+#include "LabIds.h"
 
 typedef struct ClientRuntime {
     IEcoSystem1* system;

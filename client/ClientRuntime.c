@@ -22,11 +22,7 @@ int16_t client_open(IEcoUnknown* system, ClientRuntime* runtime)
         client_close(runtime);
         return ERR_ECO_NOBUS;
     }
-    status = lab_register_components(runtime->bus);
-    if (status != ERR_ECO_SUCCESS) {
-        client_close(runtime);
-    }
-    return status;
+    return ERR_ECO_SUCCESS;
 }
 
 void client_close(ClientRuntime* runtime)

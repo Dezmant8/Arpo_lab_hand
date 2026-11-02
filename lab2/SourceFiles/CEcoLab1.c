@@ -193,7 +193,7 @@ static void dispose(EcoObject* object)
 }
 
 int16_t lab1_create(IEcoUnknown* system, IEcoUnknown* outer,
-    const UGUID* iid, void** result, uint32_t configuration)
+    const UGUID* iid, void** result)
 {
     EcoObject* object;
     CEcoLab1* self;
@@ -203,9 +203,6 @@ int16_t lab1_create(IEcoUnknown* system, IEcoUnknown* outer,
     status = eco_check_creation(system, outer, iid, result, 1);
     if (status != ERR_ECO_SUCCESS) {
         return status;
-    }
-    if (configuration > LAB1_INCLUDE_E) {
-        return ERR_ECO_INVALIDARG;
     }
     status = eco_object_allocate(system, outer, sizeof(CEcoLab1),
         query_views, dispose, &object, &bus);
@@ -217,8 +214,7 @@ int16_t lab1_create(IEcoUnknown* system, IEcoUnknown* outer,
     self->calc_x.pVTbl = &x_vtable;
     self->calc_y.pVTbl = &y_vtable;
     sort_state_initialize(&self->state);
-    status = lab1_parts_open(&self->parts, bus, object->controller,
-        (Lab1Composition)configuration);
+    status = lab1_parts_open(&self->parts, bus, object->controller);
     bus->pVTbl->Release(bus);
     if (status == ERR_ECO_SUCCESS && (self->parts.included_y == 0 ||
         (self->parts.included_x == 0 && self->parts.inner_b == 0))) {

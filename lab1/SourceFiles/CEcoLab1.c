@@ -84,13 +84,12 @@ static void dispose(EcoObject* object)
 }
 
 int16_t lab1_create(IEcoUnknown* system, IEcoUnknown* outer,
-    const UGUID* iid, void** result, uint32_t configuration)
+    const UGUID* iid, void** result)
 {
     EcoObject* object;
     CEcoLab1* self;
     int16_t status;
 
-    (void)configuration;
     status = eco_check_creation(system, outer, iid, result, 0);
     if (status != ERR_ECO_SUCCESS) {
         return status;

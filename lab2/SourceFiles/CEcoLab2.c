@@ -4,6 +4,7 @@
 #include "IEcoSortAndSearch.h"
 #include "IEcoCalculatorX.h"
 #include "IEcoCalculatorY.h"
+#include "CalculatorIds.h"
 
 typedef struct CEcoLab2 {
     EcoObject object;
@@ -143,14 +144,15 @@ static int16_t query_views(EcoObject* object, const UGUID* iid, void** result)
     if (IsEqualUGUID(iid, &IID_IEcoLab2)) {
         return eco_return_view(object, &self->lab2, result);
     }
-    if (IsEqualUGUID(iid, &IID_IEcoSortAndSearch)) {
-        return self->inner_lab1->pVTbl->QueryInterface(self->inner_lab1, iid, result);
-    }
-    if (IsEqualUGUID(iid, &IID_IEcoCalculatorX)) {
+    if (self->included_x != 0 && IsEqualUGUID(iid, &IID_IEcoCalculatorX)) {
         return eco_return_view(object, &self->calc_x, result);
     }
-    if (IsEqualUGUID(iid, &IID_IEcoCalculatorY)) {
+    if (self->included_y != 0 && IsEqualUGUID(iid, &IID_IEcoCalculatorY)) {
         return eco_return_view(object, &self->calc_y, result);
+    }
+    if (IsEqualUGUID(iid, &IID_IEcoSortAndSearch) ||
+        IsEqualUGUID(iid, &IID_IEcoCalculatorX) || IsEqualUGUID(iid, &IID_IEcoCalculatorY)) {
+        return self->inner_lab1->pVTbl->QueryInterface(self->inner_lab1, iid, result);
     }
     return ERR_ECO_NOINTERFACE;
 }
@@ -177,14 +179,13 @@ static void dispose(EcoObject* object)
 }
 
 int16_t lab2_create(IEcoUnknown* system, IEcoUnknown* outer,
-    const UGUID* iid, void** result, uint32_t configuration)
+    const UGUID* iid, void** result)
 {
     EcoObject* object;
     CEcoLab2* self;
     IEcoInterfaceBus1* bus;
     int16_t status;
 
-    (void)configuration;
     status = eco_check_creation(system, outer, iid, result, 0);
     if (status != ERR_ECO_SUCCESS) {
         return status;
@@ -201,19 +202,21 @@ int16_t lab2_create(IEcoUnknown* system, IEcoUnknown* outer,
     self->inner_lab1 = 0;
     self->included_x = 0;
     self->included_y = 0;
-    status = bus->pVTbl->QueryComponent(bus, &CID_Lab1AggregatedB,
+    status = bus->pVTbl->QueryComponent(bus, &CID_EcoLab1,
         object->controller, &IID_IEcoUnknown, (void**)&self->inner_lab1);
     if (status != ERR_ECO_SUCCESS || self->inner_lab1 == 0) {
         goto failed;
     }
     status = bus->pVTbl->QueryComponent(bus, &CID_EcoCalculatorE, 0,
         &IID_IEcoCalculatorX, (void**)&self->included_x);
-    if (status != ERR_ECO_SUCCESS || self->included_x == 0) {
-        goto failed;
+    if (status == ERR_ECO_SUCCESS && self->included_x != 0) {
+        status = self->included_x->pVTbl->QueryInterface(self->included_x,
+            &IID_IEcoCalculatorY, (void**)&self->included_y);
+        if (status != ERR_ECO_SUCCESS || self->included_y == 0) {
+            goto failed;
+        }
     }
-    status = self->included_x->pVTbl->QueryInterface(self->included_x,
-        &IID_IEcoCalculatorY, (void**)&self->included_y);
-    if (status != ERR_ECO_SUCCESS || self->included_y == 0) {
+    else if (status != ERR_ECO_COMPONENT_NOTFOUND) {
         goto failed;
     }
     bus->pVTbl->Release(bus);
