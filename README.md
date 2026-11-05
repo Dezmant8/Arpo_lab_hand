@@ -18,6 +18,6 @@ git -C .eco/Eco.Education checkout --detach 7f1664b0489bcea6d5b211807ea5cb0ce0e1
 python3 scripts/lab.py test
 ```
 
-Для одной работы добавьте `--lab 1` или `--lab 2`. Первой лабораторной достаточно SDK. Если Eco.Education уже скачан, передайте `--education "/путь/к/Eco.Education"` команде второй работы.
+Для одной работы `--lab 1` или `--lab 2`. Первой лабораторной достаточно SDK. Если Eco.Education уже скачан, то просто добавить `--education "/путь/к/Eco.Education"` к команде второй работы.
 
 `demo` запускает пример, `benchmark` сравнивает сортировку с `qsort`. Результаты проверки лежат в `build/labN/dynamic-test/result.json`, замеры — в `build/labN/dynamic-benchmark/benchmark.csv`. Готовые [библиотеки первой](artifacts/macos-arm64/lab1) и [второй](artifacts/macos-arm64/lab2) работ собраны для arm64.
